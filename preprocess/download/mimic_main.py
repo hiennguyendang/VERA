@@ -10,7 +10,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 try:
-    from preprocess.download.config import PipelineConfig, default_config
+    from preprocess.config import PipelineConfig, default_config
     from preprocess.download.mimic_dataset import MimicImageRecord, MimicScanStats, scan_mimic_images
     from preprocess.download.utils import (
         build_metadata_entry,
@@ -18,12 +18,13 @@ try:
         load_metadata,
         load_string_set,
         preprocess_image,
+        save_image_dimensions_jsonl,
         save_metadata,
         save_string_set,
         setup_logger,
     )
 except ModuleNotFoundError:
-    from preprocess.download.config import PipelineConfig, default_config
+    from config import PipelineConfig, default_config
     from preprocess.download.mimic_dataset import MimicImageRecord, MimicScanStats, scan_mimic_images
     from preprocess.download.utils import (
         build_metadata_entry,
@@ -31,6 +32,7 @@ except ModuleNotFoundError:
         load_metadata,
         load_string_set,
         preprocess_image,
+        save_image_dimensions_jsonl,
         save_metadata,
         save_string_set,
         setup_logger,
@@ -134,6 +136,7 @@ def process_mimic_images(
     metadata_index: dict[str, dict],
     logger,
 ) -> tuple[int, int, int]:
+    dimensions_path = config.processed_dir / "dimensions.jsonl"
     new_count = 0
     skipped_existing = 0
     failed_count = 0
@@ -144,7 +147,7 @@ def process_mimic_images(
             continue
 
         try:
-            processed = preprocess_image(record.image_path, config.output_size)
+            processed, width, height = preprocess_image(record.image_path, config.output_size)
             out_dir = config.output_images_dir / record.p_folder / record.patient_id
             out_dir.mkdir(parents=True, exist_ok=True)
             output_path = out_dir / f"{record.image_id}.jpg"
@@ -156,6 +159,16 @@ def process_mimic_images(
                 study_id=record.visit_id,
                 output_path=output_path,
             )
+
+            save_image_dimensions_jsonl(
+                dimensions_path=dimensions_path,
+                image_id=record.image_id,
+                patient_id=record.patient_id,
+                study_id=record.visit_id,
+                width=width,
+                height=height,
+            )
+
             processed_files.add(record.image_id)
             new_count += 1
         except Exception as exc:  # noqa: BLE001

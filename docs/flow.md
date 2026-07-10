@@ -222,6 +222,110 @@ hiệu định vị chảy xuống M4/M5.
   4 thiết bị), rồi từ đó ra **14 nhãn bệnh CheXpert cho mỗi vùng**.
 - 69 concept đóng vai một **"nút thắt giải thích"** tiềm năng: nếu đủ tin cậy, ta nói được "bệnh d *vì*
   concept c". (Điều kiện để được phép tuyên bố điều này — xem 7.3.)
+- **Tầng concept→bệnh có hai hiện thực:** (a) **MLP tự do** — accuracy cao nhất nhưng *rối* (concept vướng
+  vào nhau) → trượt kiểm định can thiệp; (b) **head "faithful"** — ánh xạ **tuyến tính, phi-âm, có mask** theo
+  bản đồ concept→bệnh (`logit_d = Σ softplus(W)·mask·concept + b`): mỗi bệnh chỉ nhận concept *của nó* và hệ
+  số ≥0, nên **bật concept chỉ có thể làm tăng bệnh nó nuôi** ⇒ qua kiểm định can thiệp *by construction*. Đây
+  là hiện thực dùng để **tuyên bố "vì sao"** (xem kết quả 7.3).
+
+#### 7.2.1 Head faithful (masked non-negative CBM) — nhánh trọng tâm của VERA
+
+Đây là hiện thực **VERA chọn ship** cho kênh "vì sao". Vì nó là nhánh quan trọng nhất, mô tả đầy đủ cơ chế,
+điều kiện, phạm vi bảo đảm và nguồn gốc bản đồ bên dưới. Code: `phase_3/src/heads.py::ConceptDiseaseHead`
+(`masked=True`), chỉ dùng ở **mode B**, đứng ở nấc **69 concept → 14 bệnh CheXpert**, mức **per-region**.
+
+**Đường đi tín hiệu (mode B).**
+```
+region_feat[512] ──concept_head (MLP tự do)──► concept_logits[69] ──sigmoid──► c ∈ [0,1]^69
+                                                                                    │
+                                                            ConceptDiseaseHead (faithful)
+                                                                                    ▼
+                                                                       region_disease_logits[14]
+```
+Đầu vào head faithful là **activation concept đã qua sigmoid** `c ∈ [0,1]^69` (không phải logit thô), nên
+mỗi concept là một "mức độ hiện diện" trong [0,1] — điều này khiến diễn giải trọng số có nghĩa.
+
+**Công thức (mỗi bệnh d).**
+```
+logit_d = Σ_c  softplus(W[d,c]) · mask[d,c] · c_concept  +  b_d
+```
+Hai ràng buộc là **cấu trúc cứng** (ép trong kiến trúc, không phải "hy vọng training học ra"):
+
+1. **Phi âm** — `softplus(W) ≥ 0` luôn đúng ⇒ mọi trọng số concept→bệnh đều ≥ 0.
+2. **Mask theo bản đồ lâm sàng** — `mask[d,c] = 1` chỉ khi concept `c` thuộc `CHEX_FROM_CONCEPTS[d]`
+   (concept đó thật sự nuôi bệnh đó), còn lại = 0 ⇒ **bệnh `d` chỉ được nghe chính các concept của nó**,
+   không vay concept của bệnh khác.
+
+**Bảo đảm — đơn điệu theo thiết kế (đây là mấu chốt của "faithful").**
+```
+∂ logit_d / ∂ c_concept = softplus(W[d,c]) · mask[d,c]  ≥ 0
+```
+Đạo hàm **không âm** ⇒ tăng/bật một concept đã map **chỉ có thể làm TĂNG** (không bao giờ giảm) bệnh nó nuôi;
+tắt nó chỉ có thể làm giảm. Do đó **concept-intervention test** (spec 3.4: ép concept on → xác suất bệnh phải
+đi đúng chiều) **đậu 100% by construction** — không phụ thuộc may rủi của training. `b_d` **không** bị ràng
+buộc (âm được): nó là ngưỡng/base-rate của bệnh, không phá tính đơn điệu theo concept.
+
+**Vì sao các hiện thực khác trượt (cùng dữ liệu, cùng concept):**
+
+| head | ràng buộc | hệ quả |
+|------|-----------|--------|
+| `mlp` | không (MLP 69→14 tự do) | trọng số âm + trộn chéo concept → bottleneck **giả** (can thiệp không đảm bảo đúng chiều, theo-seed) |
+| `linear` | dày đặc, **có dấu** | vẫn âm được → không bảo đảm chiều |
+| `nonneg` | ≥0 nhưng **không mask** | bệnh vay concept của bệnh khác → attribution bẩn |
+| `faithful` | **≥0 + mask** | đơn điệu + chỉ-concept-của-mình → **CBM sạch** ✅ |
+
+**Cái giá & cái được.** Đổi một **cái giá accuracy nhỏ** so với `mlp` (đo lại ở v2) lấy một bottleneck
+**thật**: mỗi dự đoán bệnh = tổng có trọng số **không âm** của **đúng các concept lâm sàng của nó** + bias.
+Đọc được thẳng "vì sao": *bệnh d bật vì concept c1, c2 đang hiện diện với trọng số w1, w2* — một câu giải
+thích **verify được**, đúng trục bán hàng của VERA.
+
+**Phạm vi bảo đảm (đọc kỹ — tránh over-claim).** Đảm bảo đơn điệu chỉ nằm ở nấc **concept → region_disease**.
+Cụ thể:
+- `concept_head` (feat→69) **vẫn là MLP tự do** — concept phải *bám ảnh*; đó là điều kiện **go/no-go**
+  (F1 "concept-từ-ảnh" ≥ 0.30). Head faithful không đảm bảo concept đúng, chỉ đảm bảo *nếu* concept đúng thì
+  bệnh là hàm đơn điệu, chỉ-của-mình của chúng.
+- Nấc **image-level** vẫn qua aggregation vùng→ảnh + global-head gate (cho finding quan hệ) — **không** nằm
+  trong bảo đảm này. Câu "vì sao"-faithful đúng ở phạm vi **per-region concept→disease**, không phải toàn ảnh.
+
+**Nguồn gốc `mask`.** `mask = constants.CHEX_FROM_CONCEPTS` = **nghịch đảo** trường `chexpert` của mỗi concept
+trong `data/m3_concept_space.json`. Chi tiết provenance + cách ta kiểm chứng & tinh chỉnh nó ở **§7.2.2**.
+
+#### 7.2.2 Chọn & kiểm chứng crosswalk (phiên bản dùng để chạy — "v2"), tái lập được
+
+**Provenance 2 lớp (minh bạch cho paper).**
+- **69 concept = từ vựng thuộc tính Chest ImaGenome** (anatomicalfinding / disease / tubesandlines / device),
+  thống kê pos/neg trên **243,310 scene graph** → **chính danh**, ontology của chính bộ dữ liệu nguồn.
+- **Crosswalk concept→CheXpert-14 = bản đồ do repo curate** (KHÔNG phải export chính thức "một-nút"): nửa số ô
+  **khớp tên hiển nhiên** (`pleural effusion→Pleural Effusion`, mọi ống/thiết bị→`Support Devices`…), nửa còn
+  lại **gộp theo suy luận X-quang** (`vascular congestion→Edema`, `costophrenic angle blunting→Pleural
+  Effusion`…). 22/69 concept không map vào CheXpert nào (`chexpert=None`).
+
+> **Tách bạch "faithful" và "valid".** Bảo đảm đơn điệu/intervention của head **không phụ thuộc** crosswalk
+> đúng/sai — dù map lệch, head vẫn trung thực với chính concept của nó. Crosswalk chỉ ảnh hưởng **tính hợp lệ
+> lâm sàng (validity)** (bệnh được nghe concept nào + nhãn region_chexpert suy ra để train), **không** ảnh hưởng
+> **faithfulness**. ⇒ phải rà soát + trích nguồn crosswalk, đừng trình như nhãn chính thức.
+
+**Kiểm chứng bằng dữ liệu (`phase_3/scripts/validate_crosswalk.py`).** Validate crosswalk bằng **nhãn ĐỘC LẬP**
+`image_chexpert` (CheXpert labeler trên report — KHÔNG suy từ concept, nên không vòng lặp; `region_chexpert` thì
+suy ra → không dùng làm target validate). Với mỗi bệnh, xếp hạng cả 69 concept theo **mutual information + lift**
+trên **222,155 ảnh**. Ba phát hiện:
+1. **Lõi map đúng:** mọi bệnh có tín hiệu cân bằng có concept tay-map là **predictor #1 theo MI**, cách biệt lớn
+   (Edema 0.64 · Pleural Effusion 0.61 · Pneumothorax 0.47 · Consolidation 0.42 · Cardiomegaly 0.32 ·
+   Pneumonia 0.22) — nhãn độc lập xác nhận các cạnh cốt lõi.
+2. **"Cạnh thiếu" MI-cao thật ra là CONFOUNDER** mà map faithful **nên loại**: Pneumothorax←`chest tube` (là
+   *điều trị*!), Consolidation←`endotracheal/enteric tube` (bệnh nhân ICU), mọi bệnh←`lung opacity`/`pleural
+   effusion` (đồng mắc). Một cây học tự động sẽ vơ hết các shortcut này ⇒ đây là **luận điểm mạnh để chọn
+   map-curate thay vì map học-tự-động** (ghi vào paper).
+3. **Tinh chỉnh (→ "v2"):** thêm `aspiration→Pneumonia` (lift ×2.2) và `lung cancer→Lung Lesion` (đúng hướng
+   lâm sàng); **bỏ** `calcified nodule` và `cyst/bullae` khỏi `Lung Lesion` (MI≈0, lành tính). Bỏ qua
+   `pericardial effusion`/`fluid overload` (MI yếu + hướng mơ hồ giữa Edema/Cardiomegaly).
+
+**Tái lập (server).** `phase_3/scripts/patch_crosswalk.py` vá 4 cạnh trên vào `m3_concept_space.json` **và**
+re-derive `region_chexpert.npy` thẳng từ `region_concepts.npy` (concept thô, độc lập crosswalk — **không cần
+scene graph**), idempotent + backup `.bak`. Chỉ **~0.01% ô `region_chexpert` đổi** (concept hiếm);
+`image_chexpert` **không đổi** → so sánh image-AUC là công bằng. Sau đó retrain (mask tự rebuild từ constants).
+**Toàn bộ số ở §7.3 là của crosswalk v2**, chọn best theo **AUC** (`--select-by auc`, mặc định mới — F1@0.5 bị
+prevalence chi phối nên không dùng để chốt checkpoint).
 
 ### 7.3 Ba hướng head & tiêu chí chọn theo *faithfulness*
 M3 hỗ trợ **ba hướng**, khác nhau **không chỉ ở độ chính xác mà ở việc "giải thích bằng concept có trung
@@ -241,6 +345,61 @@ thực không"**:
   3. Hướng **C** phải qua **leakage test** (xoá/ngẫu nhiên hoá kênh concept; nếu accuracy gần như không tụt
      ⇒ concept chỉ trang trí ⇒ **không** được trình là "vì sao").
 - **Hướng A luôn là lưới an toàn.** Đừng để accuracy cao của C kéo hệ rời trục "readout verify được".
+
+**Kết quả (silver MIMIC, test — crosswalk v2, chọn best theo AUC; đọc AUC, F1@0.5 bị prevalence thổi phồng).**
+
+> ⏳ **Đang chạy lại toàn bộ grid trên crosswalk v2 + `--select-by auc`.** Các cột số dưới điền khi có kết quả v2.
+> Những **kết luận CẤU TRÚC** (không phụ thuộc con số) đã chắc và giữ nguyên — liệt kê ngay dưới bảng.
+
+*Bảng 1 — hướng head A/B/C + tầng concept→bệnh của B (skeleton v2):*
+
+| Hướng / head bệnh | image AUC | region AUC | concept F1 | can thiệp / rò rỉ | "vì sao" faithful |
+|------|:---------:|:----------:|:----------:|-------------------|:-----------------:|
+| **A** direct | _ | _ | — | — (chỉ where) | — |
+| **B** MLP tự do | _ | _ | _ | theo-seed | ⚠️ không đảm bảo |
+| **B faithful** (masked non-neg) | _ | _ | _ | **100% by construction** | ✅ |
+| B linear / B nonneg | _ | _ | _ | (nonneg: concept dễ sập — cấu trúc) | ❌ |
+| **C** hybrid | _ | _ | _ | leakage test | ❌ nếu rò rỉ |
+
+*Bảng 2 — ablation "thân" trên B-faithful (skeleton v2):* ship (mask+global+neck-off+agg-attn) vs. −global-head ·
+neck128 · −mask · agg-max · box-GT-oracle. (điền khi có số v2.)
+
+**Kết luận cấu trúc (chắc, không phụ thuộc số v1/v2):**
+- **`faithful` đậu concept-intervention 100% by construction** (đơn điệu ép cứng) — kênh "vì sao" duy nhất *đảm
+  bảo*; `mlp` chỉ đậu theo-seed; `nonneg` (bỏ mask) khiến concept dễ sập; `C` chỉ được trình "vì sao" nếu qua
+  leakage test. ⇒ **VERA ship B-faithful** cho "vì sao", **A** làm lưới an toàn "ở đâu".
+- **Kỳ vọng (đo lại v2):** accuracy ~phẳng giữa A/B/C và qua hầu hết ablation ⇒ **trần do feature frozen** quyết,
+  không do head; hai thứ dự kiến còn nhấc kim là **global head** và (về faithfulness) **head faithful**.
+
+#### 7.3.1 Cấu hình ship "lean" & nguyên tắc chống-phức-tạp
+
+Reviewer ghét phức tạp thừa → **model ship chỉ giữ thành phần *chứng minh được* là đáng giá**:
+
+```
+HEAD_MODE="B"  DISEASE_HEAD="faithful"  USE_GLOBAL_HEAD=True
+MASK_BBOX=True  NECK_DIM=None  REGION_AGG="attention"  HEAD_TYPE="mlp"
+```
+| thành phần | giữ? | lý do |
+|-----------|:----:|-------|
+| global head + gate | ✅ | thành phần đáng kể duy nhất về accuracy (đo lại v2) |
+| head faithful | ✅ | 100% by-construction + **ít param hơn** MLP (980 vs ~300K) |
+| mask bbox | ✅ | ~0 accuracy nhưng LÀ tín hiệu "ở đâu" trung thực (giữ vì faithfulness, không vì số) |
+| neck | ❌ off | không cải thiện → bỏ cho đơn giản + giữ 512 cho M4 |
+| KAN head | ❌ | **×3.8 param** cả model (1.64M→6.18M; head concept ×9: 0.30M→2.68M), **0 lợi ích trần** + overfit nhanh hơn |
+| mode C / nonneg / linear | ❌ | rò rỉ+phức tạp / concept dễ sập / bảo đảm yếu |
+
+**Chọn checkpoint theo AUC.** `--select-by auc` (mặc định mới) — F1@0.5 bị prevalence + pos_weight chi phối
+(model random vẫn F1 ~0.65) nên **không** dùng để chốt `best.pt`; chỉ log kèm. `--select-by f1` giữ lại cho
+tái lập kết quả cũ.
+
+**Ghi chú KAN (FastKAN Gaussian-RBF, `--head-type kan`, đã implement nhưng KHÔNG ship):** trên đường cong train,
+KAN chạm **cùng trần val** như MLP rồi **overfit nhanh hơn**, đổi lại **×3.8 tham số** toàn model ⇒ không có lý
+do ship. (Reload có một lần collapse bất thường do checkpoint chốt nhầm epoch bất ổn — không dùng số đó; quyết
+định loại KAN dựa trên trần val + số param.)
+
+> **Nghịch lý phải nhớ:** cắt phức tạp khỏi *model ship*, **nhưng KHÔNG xoá code ablation.** Chính **Bảng 1+2
+> ở trên là bằng chứng ta không thêm phức tạp thừa** ("thử neck/KAN/hybrid → +0.00 AUC → bỏ"). Các flag ablation
+> vẫn tồn tại sau cờ (off by default) để tái lập bảng này cho paper.
 
 ### 7.4 Nhánh toàn-ảnh cho finding *quan hệ*
 - Vài finding mang tính **quan hệ/toàn cục**, không nằm gọn trong một hộp: tim to (cardiomegaly), phù lan

@@ -1,0 +1,213 @@
+# phase_3 — Module 3: C-KAN (per-region concept + disease)
+
+BioViL-T grid → **bbox-masked attention-pool 29 anatomical regions** → **neck 512→128** →
+**69 concepts** (43 finding + 10 disease + 12 tubes + 4 device) → **14 CheXpert**. The
+region-level path is fused with a **global head** through a learned gate for relational findings.
+Per-region outputs feed M4 (temporal) and M5 (report). Implements `docs/VERA_phase_3_4_5_spec.md`.
+
+```
+features 196×512 ─pool(mask bbox)→ 29×512 ─concept→ 29×69 ─disease→ 29×14 ─agg─┐
+                                  (neck off; 512 kept)                          ├gate→ 14 (image)
+                            global vec ─GlobalHead→ 14 ───────────────────────────┘
+```
+
+## Three directions (config.HEAD_MODE / --mode) — spec 3.3 letters
+| mode | disease head input | faithfulness | trade-off |
+|------|--------------------|--------------|-----------|
+| **A** Direct | region features | **where-faithful, unconditional** (safe fallback) | accuracy ceiling, no "why" |
+| **B** CBM | 69 concepts only | the **only** "why"-faithful path (if it passes 3.4 tests) | small accuracy cost |
+| **C** Hybrid | features ⊕ 69 concepts (leaky) | **CBM-leakage risk** — concepts may be decorative | highest accuracy, must pass leakage test |
+
+Run all three; **faithfulness numbers (not accuracy) decide which gets the "why" claim** — see
+`scripts/6-faithfulness.py` (spec 3.4).
+
+### Mode-B concept→disease head (`config.DISEASE_HEAD` / `--disease-head`)
+A free MLP over the 69 concepts maximizes accuracy but **entangles** them → it fails the intervention
+test. The **`faithful`** head is a **masked, non-negative linear** map (`heads.ConceptDiseaseHead`):
+`logit_d = Σ_c softplus(W[d,c])·mask[d,c]·concept_c + b_d`, where the mask (from `CONCEPT_TO_CHEX`)
+restricts each disease to *its own* concepts and the weights are ≥0 — so raising a mapped concept can
+only raise its disease ⇒ **the concept-intervention test passes by construction**. Options:
+`mlp` (accuracy, entangled) · `linear` (dense, no sign) · `nonneg` (≥0, no mask) · `faithful` (≥0 + masked).
+
+## Crosswalk validation (how the shipped concept→CheXpert map — "v2" — was chosen)
+The faithful-head `mask` = `CHEX_FROM_CONCEPTS` (inverse of each concept's `chexpert` field in
+`data/m3_concept_space.json`). The 69 concepts are the Chest ImaGenome attribute vocabulary (legit); the
+concept→CheXpert-14 crosswalk is **repo-curated**, so we validated it against the **independent**
+`image_chexpert` labels (CheXpert labeler on the report — NOT derived from concepts) via
+`scripts/validate_crosswalk.py` (MI + lift over 222,155 images). Findings:
+1. **Core map confirmed** — every balanced-signal disease's hand-mapped concept is the #1 predictor by MI
+   (Edema 0.64, Pleural Effusion 0.61, Pneumothorax 0.47, Consolidation 0.42, Cardiomegaly 0.32, Pneumonia 0.22).
+2. **High-MI unmapped concepts are confounders** the faithful map correctly excludes (Pneumothorax←chest tube =
+   the *treatment*; Consolidation←ET/enteric tube = ICU patients). A learned tree would grab these shortcuts →
+   an argument *for* the curated map.
+3. **Edits (→ v2, `scripts/patch_crosswalk.py`)**: add `aspiration→Pneumonia`, `lung cancer→Lung Lesion`; drop
+   `calcified nodule`, `cyst/bullae` from `Lung Lesion` (MI≈0, benign). Re-derives `region_chexpert.npy` from the
+   crosswalk-independent `region_concepts.npy` (no scene graphs); ~0.01% of cells change, `image_chexpert`
+   unchanged (fair image-AUC comparison).
+
+## Results (silver MIMIC, test — **crosswalk v2**, `--select-by auc`)
+> ⏳ Re-running the full grid on crosswalk v2 with AUC-based checkpoint selection — numbers pending.
+> **Structural conclusions (version-independent, already firm):**
+> - `faithful` passes concept-intervention **100% by construction** (hard monotonicity) — the only *guaranteed*
+>   "why" channel; `mlp` passes only seed-dependently; `nonneg` (no mask) lets concepts collapse; `C` needs the
+>   leakage test. → **ship B-faithful** for the "why", **A** as the where-faithful fallback.
+> - Accuracy is expected ~flat across A/B/C and most ablations (ceiling = frozen features); the two things
+>   expected to still move it are the **global head** (accuracy) and the **faithful head** (faithfulness).
+> - Read **AUC** (F1@0.5 is prevalence-inflated: a random model still scores macro-F1 ~0.65).
+
+### Shipping config (lean — reviewers dislike unnecessary complexity)
+```
+HEAD_MODE="B"  DISEASE_HEAD="faithful"  USE_GLOBAL_HEAD=True   # + --select-by auc
+MASK_BBOX=True  NECK_DIM=None  REGION_AGG="attention"  HEAD_TYPE="mlp"
+```
+Keep: global head, faithful head (faithfulness + fewer params: 980 vs ~300K), mask (the "where" signal, ~0
+accuracy). Drop from the shipped model: neck, **KAN**, mode C / nonneg / linear.
+**Do NOT delete the ablation flags** — the ablation grid *is* the proof there's no unnecessary complexity;
+flags stay off-by-default so the paper's ablation is reproducible.
+
+**KAN head** (`--head-type kan`, FastKAN Gaussian-RBF — implemented, NOT shipped): reaches the **same val
+ceiling** as the MLP then **overfits faster**, for **×3.8 the params** (full model 1.64M→6.18M; concept head
+×9: 0.30M→2.68M). No ceiling gain → not shipped.
+
+## Layout (mirrors phase_2)
+```
+phase_3/
+  src/         importable libs (clean names — imported across modules, so NOT numbered)
+  scripts/     numbered run-order entries (1-… 8-…); each self-inserts ../src on sys.path
+  notebooks/   phase3_kaggle.ipynb
+```
+Library modules cannot be numbered (`import 4-dataset` is invalid), so the executable scripts that
+import them live in `scripts/` with `N-` prefixes and the libs stay clean-named in `src/` — exactly
+the phase_2 `src` vs `scripts` split.
+
+## Files
+**`src/` — libraries (no GPU, imported, not run directly):**
+| File | Role |
+|------|------|
+| `constants.py` | 29 regions + 69 concepts + 14 CheXpert + maps (JSONs bundled alongside) |
+| `config.py` | paths + hyperparams + toggles (mode, neck, mask, global head, pos_weight, agg) |
+| `features.py` | loader for the cached grids (`.pt`/`.npy`) = the **format contract** with M1 |
+| `pooling.py` | attention-pool 196→29, **masked to each region's bbox**, returns α (grounding) |
+| `heads.py` | MLP heads now; FastKAN swap is one config word later |
+| `model.py` | `CKAN` — neck + modes A/B/C + region→image agg + global-head gate fusion |
+| `losses.py` | masked-BCE (ignores -100) + RADAR log-scale pos_weight for imbalance |
+| `dataset.py` | join features + labels (+boxes) by image_id, split filter |
+| `eval.py` | macro-F1 + AUC metrics + `evaluate()` (imported by train/faithfulness; CLI via `5-eval.py`) |
+
+**`scripts/` — run-order entries:**
+| File | Role | Needs GPU |
+|------|------|-----------|
+| `1-labels.py` | scene graphs → per-region concept/CheXpert label arrays + boxes + manifest | no |
+| `2-pairing.py` | prior↔current pairs from the CXR metadata (for M4) | no |
+| `3-boxes_from_pred.py` | YOLO predictions → detector boxes aligned to the manifest (`boxes_det.npy`) | no |
+| `4-train.py` | train loop (checkpoint on val image macro-F1) | yes |
+| `5-eval.py` | **macro-F1** + AUC report (thin CLI over `src/eval.py`) | yes |
+| `6-faithfulness.py` | spec 3.4 tests: go/no-go concept-from-image, intervention (B), leakage (C) | yes |
+| `7-infer.py` | per-image JSON for M4/M5 (+α cells) | yes |
+| `8-precompute_regions.py` | freeze M3, dump per-image region features + logits cache for M4 | yes |
+| `dataset_stats.py` | dataset statistics for the paper (utility, unnumbered) | no |
+
+**Features (M1 — EXTERNAL):** BioViL-T extraction is **implemented & run separately by a
+collaborator** (not in this repo). It writes one `<image_id>.pt` (or `.npy`) `[197,C]` per image;
+`src/features.py` only LOADS it.
+
+## Run order
+> **STATUS (2026-06-29): phase_3 training is DEFERRED** (waiting on M1 BioViL-T features). The only
+> step being done now is the **detector-box prerequisite** — step 0b (`phase2_infer_boxes.ipynb` →
+> `predictions.jsonl`). Steps 0/0b-align/1/2+ below are the full order for when phase_3 resumes;
+> re-run `scripts/1-labels.py` then (it now hedge-masks). `scripts/3-boxes_from_pred.py` only runs once the manifest exists.
+
+```bash
+# 0) one-time prep (local, no GPU) — upload the outputs to Kaggle
+python phase_3/scripts/1-labels.py  --scene-root <chest-imagenome> --out-dir data/m3_labels
+python phase_3/scripts/2-pairing.py  # -> data/m3_pairs.jsonl
+
+# 0b) detector boxes (BOX_SOURCE="detector"): run YOLO over all MIMIC (GPU; Kaggle notebook
+#     phase_2/.../phase2_infer_boxes.ipynb pulls best.pt from Drive), then align to the manifest:
+python phase_2/scripts/yolo/5-infer_yolo.py --weights best.pt --source <mimic-448> --out pred --no-per-image
+python phase_3/scripts/3-boxes_from_pred.py --pred pred/predictions.jsonl \
+       --manifest data/m3_labels/manifest.jsonl --out-dir data/m3_labels  # -> boxes_det.npy
+
+# 1) features (M1, EXTERNAL): your collaborator extracts BioViL-T grids and gives you the
+#    cache <image_id>.pt|.npy [197,C]. phase_3 only LOADS it (src/features.py is the format contract).
+
+# 2) train each direction (A=safe fallback first), eval, then DECIDE by faithfulness
+python phase_3/scripts/4-train.py --mode A --labels-dir data/m3_labels --features-root <feat> --device cuda
+python phase_3/scripts/4-train.py --mode B ...
+python phase_3/scripts/4-train.py --mode C ...
+python phase_3/scripts/5-eval.py         --ckpt <run>/m3_B/best.pt --split test
+python phase_3/scripts/6-faithfulness.py --ckpt <run>/m3_B/best.pt --split val   # B: intervention test
+python phase_3/scripts/6-faithfulness.py --ckpt <run>/m3_C/best.pt --split val   # C: leakage test
+python phase_3/scripts/7-infer.py        --ckpt <run>/m3_A/best.pt --split test --out m3_pred.jsonl --topk-cells 3
+```
+
+## Notes
+- **Letters follow the spec** (A=Direct safe fallback, B=pure CBM, C=Hybrid). This is the
+  intended run order; do not confuse with any earlier C/A/B labelling.
+- **Headline metric = macro-F1 + per-class** (spec 3.6); checkpoint selection is on val image-F1.
+  AUC is reported alongside. Accuracy is deliberately not used (majority class dominates).
+- **bbox-masked pooling** (`MASK_BBOX=True`): each region query attends only its bbox cells, so
+  α is a faithful within-region "where" signal. Absent boxes fall back to full-grid (no NaN).
+- **Neck DISABLED by choice** (`NECK_DIM=None`): we keep the full **512-d** region feature
+  (richer signal). It is the contract shared with M4 → `region_in_dim = 512×3 + 14×2 = 1564`
+  (still light). Set `NECK_DIM=128` to re-enable the neck (→ `412`).
+- **Global head + gate** (`USE_GLOBAL_HEAD`): relational findings (cardiomegaly, diffuse edema,
+  low lung volumes) come from a GAP/global vector, fused per-disease via `g=σ(gate(global))`.
+- **Imbalance** (`USE_POS_WEIGHT`): RADAR log-scale `α_i = log(1+|D|/pos_i)` on every BCE term.
+- **Labels:** `1` positive / `0` negative / `-100` not-mentioned (never collapse -100→0).
+  Per-region CheXpert is **derived** from concepts via the map in `constants.py`.
+- **M4 hook:** `model.py` returns `region_feats [B,29,512]` (128 if neck on) and `region_attn [B,29,196]`.
+- **Boxes (B1, see `docs/VERA_methodology_concerns.md`):** `config.BOX_SOURCE` (default
+  **`"detector"`**) selects the ROI-pool box source — YOLO detector boxes (`boxes_det.npy`, same
+  source at train & launch) vs silver **GT boxes** (`boxes.npy`). Build the detector boxes with
+  `phase_2/scripts/yolo/5-infer_yolo.py` → `phase_3/scripts/3-boxes_from_pred.py` (aligned to the
+  label manifest). Flip to `--box-source gt` (train/eval) for the **gold-vs-detector oracle ablation**.
+- **Uncertainty (shared with M2/M4):** a finding asserted in a HEDGED sentence ("possible", "no
+  definite", "cannot exclude" — `hedge.py::is_hedged`) is **masked** at M3 (`-100`, not trained as a
+  confident finding). Detected from silver `phrases` or the LLM's `uncertainty_cues`, so the silver
+  and LLM-pseudo paths mask identically.
+
+## Current audit
+
+Latest parsed `RUN/` + `LOGS/` summary lives in `docs/VERA_experiment_audit_roadmap.md`. Current
+decision: ship `m3_B_faithful` as the main M3 checkpoint; keep the global head; detector boxes are
+acceptable because the GT-box oracle only gives a small AUC gain. Remaining P0/P1 work is calibration,
+per-concept gating, and threshold evidence.
+
+## 2026-07-09 full rerun plan
+
+Use repo-root `phase_3.sh` for the complete post-audit rerun. It supersedes
+`phase_3/run_experiments.sh`, which remains as a legacy quick grid.
+
+```bash
+# Server/H100-mini profile: full train grid + all diagnostics.
+bash phase_3.sh --profile h100mini --tag xwalk_v2
+
+# Audit-only against existing tagged checkpoints.
+bash phase_3.sh --profile h100mini --tag xwalk_v2 --skip-train
+
+# Local smoke run on one split with small epochs.
+bash phase_3.sh --profile local4060 --tag smoke --epochs 2 --audit-splits gold
+```
+
+The full script runs, in order:
+
+- crosswalk patch: `aspiration -> Pneumonia`, `lung cancer -> Lung Lesion`,
+  `calcified nodule -> None`, `cyst/bullae -> None`, then re-derives `region_chexpert.npy`;
+- full training grid: A, B-MLP, B-faithful, B-linear, B-nonneg, C, bbox/no-bbox, neck, aggregation,
+  no-global, KAN, and GT-box oracle;
+- eval diagnostics on `val test gold`, reliability CSV/SVG, faithfulness JSON, prediction dumps;
+- threshold export and concept explanation gate for the tagged `m3_B_faithful` ship run;
+- bootstrap CI from prediction dumps;
+- M3 inference JSONL for Phase 5 and frozen M3 region cache for Phase 4.
+
+Default outputs are tagged to avoid mixing old and new labels:
+
+```text
+data/run/m3_B_faithful_xwalk_v2/best.pt
+artifacts/calibration/m3_B_faithful_xwalk_v2.thresholds.json
+artifacts/calibration/m3_B_faithful_xwalk_v2.concept_gate.json
+data/m3_pred.test.xwalk_v2.jsonl
+data/m3_pred.jsonl
+data/m4_region_cache_xwalk_v2/
+```

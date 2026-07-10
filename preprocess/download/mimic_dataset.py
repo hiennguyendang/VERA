@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 try:
-    from preprocess.download.config import PipelineConfig
+    from preprocess.config import PipelineConfig
 except ModuleNotFoundError:
-    from preprocess.download.config import PipelineConfig
+    from config import PipelineConfig
 
 SUPPORTED_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
 ALLOWED_VIEWS = {"AP", "PA"}
@@ -193,8 +193,6 @@ def make_unique_mimic_image_id(
     visit_id: str,
     image_path: Path,
 ) -> str:
-    unique_key = (
-        f"{p_folder}/{patient_id}/{visit_id}/{image_path.name}".replace("\\", "/").lower()
-    )
-    digest = hashlib.sha1(unique_key.encode("utf-8")).hexdigest()[:12]
-    return f"MIMIC_{patient_id}_{visit_id}_{digest}"
+    # .stem (khong duoi): output file la f"{image_id}.jpg" -> dung 1 duoi,
+    # va extract_dicom_id(image_id) tra dung dicom (khop *_SceneGraph.json).
+    return f"MIMIC_{patient_id}_{visit_id}_{image_path.stem}"

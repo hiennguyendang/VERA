@@ -209,3 +209,34 @@
   có tên rõ**, không nhét vào v1.
 - Nhãn yếu (M2-weak, CheXplus, NIH) → **train/pretrain only, eval-never**.
 - Dataset eval chính: **MIMIC + ImaGenome người-gán**; NIH = cross-dataset eval cho M3-disease.
+## E. Current Experiment Audit / Roadmap
+
+Latest parsed `RUN/` + `LOGS/` summary and priority-ranked next actions are recorded in
+`docs/VERA_experiment_audit_roadmap.md`. Short version: M3 ships as `m3_B_faithful`; M4 is still
+provisional until human temporal eval labels exist; P0/P1 work is calibration, per-concept gating,
+M4 diagnostic slicing, and M5 verify statistics.
+
+## F. 2026-07-08 MS-CXR-T status
+
+MS-CXR-T is now present locally at `data/MS_CXR_T_temporal_image_classification_v1.0.0.csv`, and
+`phase_4/scripts/5-mscxrt_audit.py` implements the audit bridge. The first run on `m4v3_tf` used
+964/1,045 pairs and reached macro-F1 0.5695 / change-only F1 0.6463 with `lse` aggregation. This
+partially resolves B2 as an external human temporal audit, but the paper still needs an explicit
+decision: use MS-CXR-T as the final external temporal test set, or keep it for calibration/audit and
+reserve another held-out human set for the final claim.
+
+## G. 2026-07-09 Phase-3 approved rerun
+
+The Phase-3 improvement plan is approved for a full rerun. Repo-root `phase_3.sh` now operationalizes
+B3/B4: apply the concept->CheXpert crosswalk patch, retrain the full M3 grid under a fresh tag,
+export per-disease thresholds, export a concept explanation gate, bootstrap headline metrics, infer
+`m3_pred.jsonl` for M5, and precompute the frozen M3 region cache for M4. This keeps the final
+`why` claim tied to the faithful B-head plus a gated concept set, not every predicted concept.
+
+## H. 2026-07-09 Phase-4 full runner
+
+Repo-root `phase_4.sh` now operationalizes the M4 rerun: it checks for the faithful Phase-3 ship
+checkpoint, builds the frozen M3 region cache, runs the v3/v4 M4 matrix, audits silver splits and
+MS-CXR-T, plots diagnostics, and emits `m4_pred.jsonl` for M5. The correct order is strict:
+**do not run final Phase 4 before Phase 3 has passed `why_faithful_allowed=True`** for the selected
+`m3_B_faithful_<tag>` checkpoint.

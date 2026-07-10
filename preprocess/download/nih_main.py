@@ -8,7 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 try:
-    from preprocess.download.config import PipelineConfig
+    from preprocess.config import PipelineConfig
     from preprocess.download.nih_dataset import NihImageRecord, list_nih_split_dirs, scan_nih_split_images
     from preprocess.download.utils import (
         build_metadata_entry,
@@ -16,12 +16,13 @@ try:
         load_metadata,
         load_string_set,
         preprocess_image,
+        save_image_dimensions_jsonl,
         save_metadata,
         save_string_set,
         setup_logger,
     )
 except ModuleNotFoundError:
-    from preprocess.download.config import PipelineConfig
+    from config import PipelineConfig
     from preprocess.download.nih_dataset import NihImageRecord, list_nih_split_dirs, scan_nih_split_images
     from preprocess.download.utils import (
         build_metadata_entry,
@@ -29,6 +30,7 @@ except ModuleNotFoundError:
         load_metadata,
         load_string_set,
         preprocess_image,
+        save_image_dimensions_jsonl,
         save_metadata,
         save_string_set,
         setup_logger,
@@ -104,6 +106,7 @@ def process_nih_records(
     metadata_index: dict[str, dict],
     logger,
 ) -> tuple[int, int, int]:
+    dimensions_path = config.processed_dir / "dimensions.jsonl"
     new_count = 0
     skipped_existing = 0
     failed_count = 0
@@ -114,7 +117,7 @@ def process_nih_records(
             continue
 
         try:
-            processed = preprocess_image(record.image_path, config.output_size)
+            processed, width, height = preprocess_image(record.image_path, config.output_size)
 
             # Keep all NIH outputs in one folder, not split-based subfolders.
             config.output_images_dir.mkdir(parents=True, exist_ok=True)
@@ -127,6 +130,16 @@ def process_nih_records(
                 study_id=record.study_id,
                 output_path=output_path,
             )
+
+            save_image_dimensions_jsonl(
+                dimensions_path=dimensions_path,
+                image_id=record.image_id,
+                patient_id=record.patient_id,
+                study_id=record.study_id,
+                width=width,
+                height=height,
+            )
+
             processed_files.add(record.image_id)
             new_count += 1
         except Exception as exc:  # noqa: BLE001

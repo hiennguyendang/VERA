@@ -51,24 +51,44 @@ def main() -> None:
     )
 
     def classify_tier(row: pd.Series) -> str:
-        if row["max_spatial_score"] >= 2 and row["max_temporal_score"] >= 5:
-            return "diamond"
-        if row["max_temporal_score"] >= 1 or row["max_spatial_score"] >= 4:
+        if row["max_spatial_score"] >= 2 and row["max_temporal_score"] >= 4:
+            return "gold"
+        if row["max_temporal_score"] >= 1 and row["max_spatial_score"] >= 6:
             return "gold"
         return "silver"
 
     patient_scores["patient_tier"] = patient_scores.apply(classify_tier, axis=1)
 
+    # --- ĐOẠN MỚI THAY THẾ ---
+    import numpy as np
+
+    # Bước 1: Tính toán số lượng cần thiết theo tỷ lệ 70/20/10 trên TỔNG số bệnh nhân
+    total_patients = len(patient_scores)
+    n_test = int(total_patients * 0.20)  # 20% cho Test
+    n_val = int(total_patients * 0.10)   # 10% cho Val
+    # Còn lại tự động là Train (70%)
+
+    # Bước 2: Mặc định tất cả là 'train' (bao gồm cả Silver và Gold)
     patient_scores["split"] = "train"
 
-    diamond_mask = patient_scores["patient_tier"].eq("diamond")
-    diamond_patients = patient_scores.loc[diamond_mask].sort_values("patient_id")
-    if len(diamond_patients) < 3000:
-        raise ValueError(f"Expected at least 3000 diamond patients, found {len(diamond_patients)}")
+    # Bước 3: Lấy danh sách index của những bệnh nhân nhóm 'gold'
+    gold_indices = patient_scores[patient_scores["patient_tier"] == "gold"].index.tolist()
 
-    test_patients = diamond_patients.sample(n=3000, random_state=42)
-    patient_scores.loc[test_patients.index, "split"] = "test"
-    patient_scores.loc[diamond_mask & ~patient_scores.index.isin(test_patients.index), "split"] = "val"
+    # Kiểm tra nếu Gold không đủ để gánh Val và Test thì báo lỗi
+    if len(gold_indices) < (n_test + n_val):
+        raise ValueError(f"Nhóm Gold ({len(gold_indices)}) không đủ để chia cho Val+Test ({n_test + n_val})")
+
+    # Bước 4: Bốc ngẫu nhiên từ nhóm Gold ra n_test người làm Test
+    rs = np.random.RandomState(42)
+    test_idx = rs.choice(gold_indices, size=n_test, replace=False)
+    patient_scores.loc[test_idx, "split"] = "test"
+
+    # Bước 5: Bốc tiếp từ những người Gold còn lại (trừ những người đã vào Test) ra n_val người làm Val
+    remaining_gold = [i for i in gold_indices if i not in test_idx]
+    val_idx = rs.choice(remaining_gold, size=n_val, replace=False)
+    patient_scores.loc[val_idx, "split"] = "val"
+
+    # Kết quả: Những người Gold còn dư và TOÀN BỘ nhóm Silver vẫn giữ nguyên là 'train'
 
     patient_scores = patient_scores[["patient_id", "split", "patient_tier", "max_spatial_score", "max_temporal_score"]]
 

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="634" viewBox="0 0 760 634">
+<rect width="100%" height="100%" fill="white"/>
+<text x="24" y="30" font-family="Arial, sans-serif" font-size="18" text-anchor="start" font-weight="bold" fill="#1f2933">m4v3_tf.gold.recheck disease slices</text>
+<rect x="230" y="42" width="14" height="14" fill="#6f8fb3"/>
+<text x="250" y="54" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">macro</text>
+<rect x="340" y="42" width="14" height="14" fill="#69a67a"/>
+<text x="360" y="54" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">change</text>
+<text x="24" y="72" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Cardiomegaly</text>
+<rect x="230" y="56" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="56" width="27.8" height="18" fill="#6f8fb3"/>
+<text x="276" y="70" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.30</text>
+<rect x="340" y="56" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="56" width="0.0" height="18" fill="#69a67a"/>
+<text x="386" y="70" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.00</text>
+<text x="24" y="106" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Pneumonia</text>
+<rect x="230" y="90" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="90" width="28.8" height="18" fill="#6f8fb3"/>
+<text x="276" y="104" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.31</text>
+<rect x="340" y="90" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="90" width="38.4" height="18" fill="#69a67a"/>
+<text x="386" y="104" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.42</text>
+<text x="24" y="140" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Pneumothorax</text>
+<rect x="230" y="124" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="124" width="31.2" height="18" fill="#6f8fb3"/>
+<text x="276" y="138" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.34</text>
+<rect x="340" y="124" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="124" width="19.7" height="18" fill="#69a67a"/>
+<text x="386" y="138" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.21</text>
+<text x="24" y="174" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Pleural Other</text>
+<rect x="230" y="158" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="158" width="42.5" height="18" fill="#6f8fb3"/>
+<text x="276" y="172" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.46</text>
+<rect x="340" y="158" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="158" width="18.4" height="18" fill="#69a67a"/>
+<text x="386" y="172" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.20</text>
+<text x="24" y="208" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Pleural Effusion</text>
+<rect x="230" y="192" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="192" width="45.5" height="18" fill="#6f8fb3"/>
+<text x="276" y="206" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.49</text>
+<rect x="340" y="192" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="192" width="57.0" height="18" fill="#69a67a"/>
+<text x="386" y="206" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.62</text>
+<text x="24" y="242" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Lung Opacity</text>
+<rect x="230" y="226" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="226" width="46.4" height="18" fill="#6f8fb3"/>
+<text x="276" y="240" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.50</text>
+<rect x="340" y="226" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="226" width="55.2" height="18" fill="#69a67a"/>
+<text x="386" y="240" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.60</text>
+<text x="24" y="276" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Consolidation</text>
+<rect x="230" y="260" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="260" width="46.8" height="18" fill="#6f8fb3"/>
+<text x="276" y="274" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.51</text>
+<rect x="340" y="260" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="260" width="50.0" height="18" fill="#69a67a"/>
+<text x="386" y="274" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.54</text>
+<text x="24" y="310" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Edema</text>
+<rect x="230" y="294" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="294" width="46.9" height="18" fill="#6f8fb3"/>
+<text x="276" y="308" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.51</text>
+<rect x="340" y="294" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="294" width="67.8" height="18" fill="#69a67a"/>
+<text x="386" y="308" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.74</text>
+<text x="24" y="344" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Pleural Effusion</text>
+<rect x="230" y="328" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="328" width="45.5" height="18" fill="#6f8fb3"/>
+<text x="276" y="342" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.49</text>
+<rect x="340" y="328" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="328" width="57.0" height="18" fill="#69a67a"/>
+<text x="386" y="342" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.62</text>
+<text x="24" y="378" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Lung Opacity</text>
+<rect x="230" y="362" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="362" width="46.4" height="18" fill="#6f8fb3"/>
+<text x="276" y="376" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.50</text>
+<rect x="340" y="362" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="362" width="55.2" height="18" fill="#69a67a"/>
+<text x="386" y="376" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.60</text>
+<text x="24" y="412" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Consolidation</text>
+<rect x="230" y="396" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="396" width="46.8" height="18" fill="#6f8fb3"/>
+<text x="276" y="410" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.51</text>
+<rect x="340" y="396" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="396" width="50.0" height="18" fill="#69a67a"/>
+<text x="386" y="410" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.54</text>
+<text x="24" y="446" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Edema</text>
+<rect x="230" y="430" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="430" width="46.9" height="18" fill="#6f8fb3"/>
+<text x="276" y="444" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.51</text>
+<rect x="340" y="430" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="430" width="67.8" height="18" fill="#69a67a"/>
+<text x="386" y="444" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.74</text>
+<text x="24" y="480" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Atelectasis</text>
+<rect x="230" y="464" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="464" width="47.6" height="18" fill="#6f8fb3"/>
+<text x="276" y="478" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.52</text>
+<rect x="340" y="464" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="464" width="53.6" height="18" fill="#69a67a"/>
+<text x="386" y="478" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.58</text>
+<text x="24" y="514" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Enlarged Cardiomediastinum</text>
+<rect x="230" y="498" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="498" width="48.1" height="18" fill="#6f8fb3"/>
+<text x="276" y="512" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.52</text>
+<rect x="340" y="498" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="498" width="30.7" height="18" fill="#69a67a"/>
+<text x="386" y="512" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.33</text>
+<text x="24" y="548" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Lung Lesion</text>
+<rect x="230" y="532" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="532" width="53.2" height="18" fill="#6f8fb3"/>
+<text x="276" y="546" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.58</text>
+<rect x="340" y="532" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="532" width="36.8" height="18" fill="#69a67a"/>
+<text x="386" y="546" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.40</text>
+<text x="24" y="582" font-family="Arial, sans-serif" font-size="12" text-anchor="start" font-weight="normal" fill="#1f2933">Fracture</text>
+<rect x="230" y="566" width="92" height="18" fill="#edf2f7"/>
+<rect x="230" y="566" width="92.0" height="18" fill="#6f8fb3"/>
+<text x="276" y="580" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">1.00</text>
+<rect x="340" y="566" width="92" height="18" fill="#edf2f7"/>
+<rect x="340" y="566" width="0.0" height="18" fill="#69a67a"/>
+<text x="386" y="580" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" font-weight="normal" fill="#111827">0.00</text>
+</svg>

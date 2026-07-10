@@ -88,6 +88,7 @@ def build_mimic_metadata(
     records: list[MimicMetadataRecord] = []
     missing_labels = 0
     missing_reports = 0
+    empty_report_sections = 0
 
     for image_path in image_paths:
         raw_patient_id, raw_study_id = extract_patient_and_study(image_path)
@@ -95,17 +96,21 @@ def build_mimic_metadata(
         study_id = normalize_study_id(raw_study_id)
         image_id = extract_image_id(image_path, raw_patient_id, raw_study_id)
         labels = label_index.get((patient_id, study_id))
-        findings, impression = report_index.get((patient_id, study_id), ("", ""))
+        report_entry = report_index.get((patient_id, study_id))
+        if report_entry is None:
+            findings, impression = "", ""
+            missing_reports += 1
+        else:
+            findings, impression = report_entry
         report = compose_standard_report(findings, impression)
-        finding_flag = "1" if findings else "0"
         study_time = study_time_index.get((patient_id, study_id), "")
 
         if labels is None:
             missing_labels += 1
-            labels = [-100] * len(label_columns)
+            continue
 
-        if finding_flag == "0":
-            missing_reports += 1
+        if report_entry is not None and not findings and not impression:
+            empty_report_sections += 1
 
         records.append(
             MimicMetadataRecord(
@@ -123,6 +128,7 @@ def build_mimic_metadata(
     logger.info("Built %d metadata records", len(records))
     logger.info("Missing labels: %d", missing_labels)
     logger.info("Missing reports: %d", missing_reports)
+    logger.info("Empty report sections: %d", empty_report_sections)
     write_mimic_outputs(output_dir, records, label_columns)
     return records
 

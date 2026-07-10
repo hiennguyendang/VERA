@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from preprocess.metadata_generator.chexplus_metadata import build_chexplus_metadata
-from preprocess.metadata_generator.mimic_metadata import build_mimic_metadata
-from preprocess.metadata_generator.nih_metadata import build_nih_metadata
+from preprocess.metadata.chexplus_metadata import build_chexplus_metadata
+from preprocess.metadata.mimic_metadata import build_mimic_metadata
+from preprocess.metadata.nih_metadata import build_nih_metadata

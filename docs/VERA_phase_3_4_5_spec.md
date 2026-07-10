@@ -80,6 +80,26 @@ Quy tắc quyết định cho bài VERA:
 > Cách trình bày này biến "ba hướng đang thử" từ rủi ro lật-luận-điểm thành **một ablation có nguyên tắc**:
 > ta để *con số faithfulness* quyết hướng nào vào bài, không để accuracy quyết.
 
+### 3.4.1 Kết quả đã chạy & quyết định (silver MIMIC, sơ bộ)
+Chạy A/B/C trên feature BioViL-T frozen (đọc **AUC** là chính; F1 bị prevalence + pos_weight thổi phồng):
+
+| Hướng | image AUC (test) | go/no-go | can thiệp / rò rỉ | "vì sao" faithful |
+|------|:---:|:---:|---|:---:|
+| A direct | 0.656 | — | — (where) | — |
+| B (MLP tự do) | 0.667 | PASS 0.83 | can thiệp **64% → TRƯỢT** | ❌ |
+| **B faithful** | 0.648 | PASS 0.80 | can thiệp **100% → ĐẠT** | ✅ |
+| C hybrid | ~0.679 | PASS 0.83 | **rò rỉ** (drop 0.015<0.02) | ❌ |
+
+- **Accuracy A≈B≈C** ⇒ trần do feature quyết, không phải head → chi phí bottleneck gần như bằng 0.
+- **Head B-MLP tự do TRƯỢT intervention** (concept entangled). Giải pháp đã hiện thực: **head concept→bệnh có
+  cấu trúc** = *tuyến tính, phi-âm (softplus), mask theo `CONCEPT_TO_CHEX`* (`heads.ConceptDiseaseHead`,
+  cờ `DISEASE_HEAD="faithful"`). Hệ số ≥0 + mỗi bệnh chỉ nhận concept của nó ⇒ intervention **đạt by-construction**
+  (100%), đổi ~0.02 AUC. Đây là bổ sung so với đặc tả gốc: thay vì rớt về A, ta **engineer được bottleneck
+  faithful thật**.
+- **Quyết định chốt:** bật kênh "vì sao" bằng **B-faithful** (qua CẢ go/no-go LẪN intervention); **C rò rỉ nên
+  cấm trình concept làm "vì sao"**; **A** giữ vai lưới an toàn where-faithful. (Sẽ củng cố bằng nhãn người-gán;
+  chi tiết số ở `phase_3/README.md` §Results.)
+
 ### 3.5 Nhánh global (finding quan hệ, không nằm trong 1 box)
 Cardiomegaly, phù lan toả, low lung volumes là finding *quan hệ* → GAP toàn ảnh → **GlobalHead**. Gộp với
 đường-vùng ở **image-logit** qua **cổng học được** (mượn gate global-local CGPR/PCF của EViKO:

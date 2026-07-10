@@ -181,62 +181,7 @@ Env-flags (locked): `RULE_SECTION_FILTER=1`, `RULE_DEFAULT_THRESH=0.55`, `RULE_A
 
 ---
 
-## 10. Phân tích khoảng cách & quy kết nguồn lỗi
-
-Câu hỏi: **vì sao F1 chưa cao như kỳ vọng, và mỗi phần lỗi đến từ TA hay từ mô tả mơ hồ của HỌ?**
-Dùng số từ `5-diagnose_rule_parser.py` (mức F1 ≈ 0.857): **FP ≈ 24.5k** (localize 10k / detect 14k),
-**FN ≈ 47k** (localize 28k / miss 19k), trần "vùng hoàn hảo" = **0.936**.
-
-| Nguồn | Lỗi | Cỡ | Sửa được? |
-|---|---|---|---|
-| **A. Khác hệ quy chiếu** | "0.9" là silver-vs-gold; ta đo parser-vs-silver/gold | định khung, không phải lỗi | — |
-| **B. Họ có ẢNH, ta chỉ có TEXT** | localization/laterality (FN-loc 28k + FP-loc 10k) | lớn nhất, ≈0.08 tới trần | không, bằng text |
-| **C. Từ phía TA (kỹ thuật)** | `_locate` regex thay vì dependency parse; không coref; vài lỗ trigger/negation | thiểu số của detect/miss | có, nhưng nặng/rủi ro |
-| **D. Mô tả MƠ HỒ của họ** | luật disambiguation/lexicon không công bố; subtype; implied-from-comparison | recall subtype + 1 phần miss | không tái lập chính xác |
-| **E. Metric ta nghiêm hơn** | họ tính relation report-level; ta khớp đúng (vùng,finding) | làm số ta trông thấp hơn | một phần |
-
-**A — Kỳ vọng đặt sai (không phải lỗi ai).** Con số 0.939 của ImaGenome là **silver-vs-GOLD**, mà
-gold được tạo BẰNG CÁCH sửa silver → hai bên gần nhau sẵn. Parser của ta là bản **tái lập độc lập**;
-0.86 (silver) / 0.77 (gold) **không cùng thước đo** với 0.939.
-
-**B — Bản chất lớn nhất: thiếu modality ảnh.** 38k cell sai là **sai VÙNG**, không sai bệnh
-(finding-only đã 0.92). Silver gán vùng nhờ **detect bbox + link câu↔object — tức dùng ẢNH**. Ta chỉ
-đọc text: câu không nêu bên ("hazy opacities") thì silver vẫn biết nhờ ảnh, ta buộc đoán footprint →
-rò sang bên kia. Đây **không phải lỗi ta, cũng không phải mơ hồ của họ — là thiếu thông tin ảnh.**
-Chính paper (trang 8) thừa nhận laterality "vắt qua câu, **ngoài khả năng của NLP pipeline**" — *cả
-pipeline gốc của họ cũng thua chỗ này*. Tường cứng của hướng text-only; vượt được phải **grounding
-bằng ảnh** (việc của phase 3).
-
-**C — Phần do TA, fixable nhưng mắc kỹ thuật (thiểu số).** (1) `_locate` dùng regex keyword thay vì
-**SpaCy dependency parse** như họ → gắn "right" vào đúng danh từ trong câu nhiều finding chưa chuẩn
-(câu nối "with/and" không phẩy vẫn rò; ta đã xấp xỉ bằng tách clause + allowed-mask). (2) Không
-**coreference** ("There is an opacity. It is on the right.") — bên ở câu sau; cả ta lẫn họ đều chịu.
-(3) Còn vài lỗ **negation phối hợp / hedge phức tạp** — đã vá phần lớn (is-present, clear-of,
-forward-scope, no-change). Các điểm này làm được nhưng nặng/rủi ro precision, ROI thấp.
-
-**D — Phần do mô tả MƠ HỒ của họ (không tái lập chính xác).** (1) **Luật disambiguation không công
-bố**: paper chỉ nói "a set of sentence-level filtering rules, e.g. collapse = lung vs vertebral"
-nhưng không đưa luật → ta không biết khi nào "volume loss" thành *lobar collapse* vs *atelectasis*
-(recall collapse 0.33, linear/patchy 0.49). (2) **Subtype convention** nội bộ (atelectasis vs
-linear/patchy). (3) **Implied-from-comparison**: silver suy ra finding *có mặt* từ "no change from
-previous" dù câu không mô tả — quy tắc suy luận không tả đủ. (4) **Lexicon 271-entity** curate bởi 2
-bác sĩ, không phát hành đầy đủ → ta mine lại 697 trigger, không phủ hết long-tail. (5) **Silver tự nó
-có nhiễu** (laterality): đo vs silver bị phạt cả ở chỗ *silver sai*; đo vs gold thì precision rớt
-0.89→0.73 vì silver gán **rộng tay hơn người**, ta tái lập trung thành silver → over-emit. Phần
-precision-loss-vs-gold này **là nhiễu silver của họ, không phải lỗi ta**.
-
-**E — Metric.** Ta khớp đúng cell **(vùng, finding, presence)**; Table 3 của họ đo object-attribute
-**relation report-level** (rollup last-mention), lỏng hơn ở chi tiết vùng → một phần "thua" là định
-nghĩa metric, không phải chất lượng.
-
-**Một câu:** khoảng cách 0.86→0.94 *không phải do parser kém* — đa số là **laterality/vùng cần ảnh**
-(bản chất, cả họ cũng thua) + **luật/lexicon họ giấu** (không tái lập được); phần *thực sự do ta và
-sửa được* (dependency parse, coref) là **thiểu số** và mắc vì nặng/rủi ro. Ở mức *phát hiện bệnh*,
-parser đã **0.92 (silver) / 0.84 (gold)** — gần nhãn người.
-
----
-
-## 11. Kết luận / khuyến nghị
+## 10. Kết luận / khuyến nghị
 
 Rule parser đạt **F1 0.860 (vs silver) / 0.771 (vs gold)**, finding-level **0.92 / 0.84**, vượt xa
 LLM zero-shot (0.090) và **không cần GPU, không hallucinate, audit được** — hợp glass-box thesis của
