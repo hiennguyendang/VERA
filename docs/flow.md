@@ -521,6 +521,11 @@ không dùng để đánh giá.** Mọi con số trong bảng kết quả đến
 | **MIMIC + ImaGenome** | trục chính: train M3 + M4 (nhãn tiến triển từ `comparison_cues`) | **eval chính** (trên phần người-gán / gold) |
 | **CheXplus** | pretrain/augment (scene graph yếu sinh từ report) — giá trị là **đa dạng phân phối**, quyết giữ/bỏ bằng ablation | **eval-never** |
 
+Kế hoạch thứ tự và ablation cụ thể: xem
+[`chexplus_integration_plan.md`](chexplus_integration_plan.md). Điểm chèn mặc định
+là **M3 weak pretraining → MIMIC clean finetuning**, trước khi đóng băng M3 để tạo
+cache cho M4.
+
 - **Nhãn CheXplus** lấy sẵn từ bộ dữ liệu gốc, chỉ **sắp lại đúng thứ tự 14 lớp như MIMIC**.
 - **Vòng lặp nhãn yếu cần cảnh giác:** M2 (LLM) sinh nhãn yếu cho CheXplus rồi train M3/M4 — đây là một dạng
   *chưng cất ngầm* (M3/M4 học bắt chước M2). Rủi ro: trần hiệu năng bị khoá bởi M2, và lỗi của M2 *chính là
