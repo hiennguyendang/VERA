@@ -1,5 +1,15 @@
 # Phase 5 — Module 5: Faithful Report Assembler (kế hoạch cuối)
 
+> **Clinical reader workflow:** xem đề xuất
+> [VERA Selective Double-Reading](phase5_selective_double_reading.md) để mở rộng
+> M5 thành quy trình `senior + junior + VERA`, có concordance gate và selective
+> escalation đến senior thứ hai.
+>
+> **Technical novelty:** xem
+> [VERA Proof-Carrying Radiology Report](phase5_proof_carrying_report.md) để nâng
+> M5 từ assembler thành clinical claim compiler, trong đó mỗi câu mang một
+> certificate máy-kiểm-tra được và mọi semantic edit đều làm proof được kiểm lại.
+
 > Tài liệu bàn giao để hiện thực M5 trong một phiên chat khác. Viết theo style
 > `phase_3_4.md`. **Đọc kỹ §0 trước khi code** — nó ghi lại các quyết định *và lý do*,
 > để không vô tình thêm lại những thứ đã được cân nhắc rồi loại bỏ (LLM reasoner tự do,
