@@ -1,0 +1,362 @@
+{
+  "A_splits": {
+    "chexplus": {
+      "val": 19109,
+      "train": 133726,
+      "test": 38211
+    },
+    "mimic": {
+      "test": 44059,
+      "val": 22138,
+      "train": 155138,
+      "gold": 833
+    }
+  },
+  "A_images": {
+    "chexplus": 191046,
+    "mimic": 222168
+  },
+  "A_patients": {
+    "chexplus": 64686,
+    "mimic": 63334
+  },
+  "A_studies": {
+    "chexplus": 187650,
+    "mimic": 212566
+  },
+  "G_report_words": {
+    "chexplus": {
+      "p25": 93.0,
+      "p50": 110.0,
+      "p75": 133.0,
+      "mean": 118.12128492614345,
+      "empty": 0,
+      "n": 191046
+    },
+    "mimic": {
+      "p25": 62.0,
+      "p50": 79.0,
+      "p75": 104.0,
+      "mean": 87.38722498289583,
+      "empty": 0,
+      "n": 222168
+    }
+  },
+  "D_chexpert": {
+    "Atelectasis": {
+      "pos": 45141,
+      "neg": 1438,
+      "unknown": 175589
+    },
+    "Cardiomegaly": {
+      "pos": 43519,
+      "neg": 15030,
+      "unknown": 163619
+    },
+    "Consolidation": {
+      "pos": 10566,
+      "neg": 7763,
+      "unknown": 203839
+    },
+    "Edema": {
+      "pos": 26809,
+      "neg": 23895,
+      "unknown": 171464
+    },
+    "Enlarged Cardiomediastinum": {
+      "pos": 6987,
+      "neg": 5026,
+      "unknown": 210155
+    },
+    "Fracture": {
+      "pos": 4331,
+      "neg": 870,
+      "unknown": 216967
+    },
+    "Lung Lesion": {
+      "pos": 6098,
+      "neg": 784,
+      "unknown": 215286
+    },
+    "Lung Opacity": {
+      "pos": 50576,
+      "neg": 2769,
+      "unknown": 168823
+    },
+    "No Finding": {
+      "pos": 73405,
+      "neg": 0,
+      "unknown": 148763
+    },
+    "Pleural Effusion": {
+      "pos": 53330,
+      "neg": 25302,
+      "unknown": 143536
+    },
+    "Pleural Other": {
+      "pos": 1936,
+      "neg": 114,
+      "unknown": 220118
+    },
+    "Pneumonia": {
+      "pos": 15883,
+      "neg": 22202,
+      "unknown": 184083
+    },
+    "Pneumothorax": {
+      "pos": 10347,
+      "neg": 41069,
+      "unknown": 170752
+    },
+    "Support Devices": {
+      "pos": 65657,
+      "neg": 3278,
+      "unknown": 153233
+    }
+  },
+  "B_studies_per_patient": {
+    "p25": 1.0,
+    "p50": 1.0,
+    "p75": 3.0,
+    "p90": 8.0,
+    "p99": 28.0,
+    "mean": 3.484834579910981,
+    "max": 158,
+    "patients": 65379,
+    "exactly_1_study": 32695,
+    "ge_2_studies": 32684
+  },
+  "BC_pairs": {
+    "pairs": 253306,
+    "same_view": 165627,
+    "currents_with_prior": 253306,
+    "both_concept_labeled": 145643,
+    "days_apart": {
+      "p25": 1.0,
+      "p50": 9.0,
+      "p75": 104.0
+    }
+  },
+  "E_comparison": {
+    "no change": 373696,
+    "worsened": 190708,
+    "improved": 130281
+  },
+  "F_concept_image_positives": {
+    "lung opacity": 148945,
+    "atelectasis": 76285,
+    "pleural effusion": 69608,
+    "enlarged cardiac silhouette": 55708,
+    "pulmonary edema/hazy opacity": 34036,
+    "pneumonia": 33121,
+    "enteric tube": 25332,
+    "vascular congestion": 23788,
+    "endotracheal tube": 21356,
+    "consolidation": 17043,
+    "pleural/parenchymal scarring": 13688,
+    "picc": 13552,
+    "lung lesion": 13028,
+    "tortuous aorta": 12913,
+    "linear/patchy atelectasis": 12337,
+    "cardiac pacer and wires": 11785,
+    "ij line": 11661,
+    "pneumothorax": 10178,
+    "chest tube": 10009,
+    "vascular calcification": 9843,
+    "hyperaeration": 9643,
+    "lobar/segmental collapse": 9193,
+    "enlarged hilum": 8633,
+    "aspiration": 8518,
+    "airspace opacity": 8286,
+    "mass/nodule (not otherwise specified)": 7523,
+    "chest port": 6947,
+    "fluid overload/heart failure": 6303,
+    "spinal degenerative changes": 6297,
+    "elevated hemidiaphragm": 6216,
+    "copd/emphysema": 6176,
+    "costophrenic angle blunting": 5552,
+    "mediastinal widening": 4858,
+    "tracheostomy tube": 4341,
+    "subclavian line": 3682,
+    "cabg grafts": 3628,
+    "multiple masses/nodules": 3619,
+    "pigtail catheter": 3395,
+    "mediastinal displacement": 3343,
+    "superior mediastinal mass/enlargement": 3153,
+    "vascular redistribution": 3153,
+    "scoliosis": 3058,
+    "spinal fracture": 3018,
+    "hernia": 2922,
+    "infiltration": 2875,
+    "prosthetic valve": 2790,
+    "calcified nodule": 2621,
+    "granulomatous disease": 2347,
+    "swan-ganz catheter": 2107,
+    "interstitial lung disease": 1916,
+    "alveolar hemorrhage": 1759,
+    "lung cancer": 1686,
+    "pericardial effusion": 1377,
+    "increased reticular markings/ild pattern": 1337,
+    "sub-diaphragmatic air": 1171,
+    "hydropneumothorax": 934,
+    "bronchiectasis": 901,
+    "pneumomediastinum": 844,
+    "clavicle fracture": 841,
+    "cyst/bullae": 808,
+    "shoulder osteoarthritis": 734,
+    "goiter": 601,
+    "bone lesion": 586,
+    "intra-aortic balloon pump": 503,
+    "mediastinal drain": 434,
+    "aortic graft/repair": 115,
+    "diaphragmatic eventration (benign)": 60,
+    "rib fracture": 0,
+    "subcutaneous air": 0
+  },
+  "F_mean_pos_concepts_per_image": 3.533658931826878,
+  "H_xgb": {
+    "Atelectasis": {
+      "auc": 0.8401358581942598,
+      "n_pos": 45138,
+      "n_neg": 1438,
+      "top": [
+        "atelectasis",
+        "pleural effusion",
+        "lobar/segmental collapse",
+        "pulmonary edema/hazy opacity"
+      ]
+    },
+    "Cardiomegaly": {
+      "auc": 0.9149381538734167,
+      "n_pos": 43514,
+      "n_neg": 15030,
+      "top": [
+        "enlarged cardiac silhouette",
+        "airspace opacity",
+        "fluid overload/heart failure",
+        "pericardial effusion"
+      ]
+    },
+    "Consolidation": {
+      "auc": 0.9856950609921289,
+      "n_pos": 10565,
+      "n_neg": 7763,
+      "top": [
+        "consolidation",
+        "pneumonia",
+        "lung opacity",
+        "ij line"
+      ]
+    },
+    "Edema": {
+      "auc": 0.9806344941860176,
+      "n_pos": 26806,
+      "n_neg": 23894,
+      "top": [
+        "pulmonary edema/hazy opacity",
+        "fluid overload/heart failure",
+        "vascular redistribution",
+        "infiltration"
+      ]
+    },
+    "Enlarged Cardiomediastinum": {
+      "auc": 0.8265158470878797,
+      "n_pos": 6986,
+      "n_neg": 5026,
+      "top": [
+        "mediastinal widening",
+        "lung opacity",
+        "mediastinal displacement",
+        "enlarged cardiac silhouette"
+      ]
+    },
+    "Fracture": {
+      "auc": 0.7156234238538929,
+      "n_pos": 4330,
+      "n_neg": 870,
+      "top": [
+        "chest tube",
+        "pneumothorax",
+        "clavicle fracture",
+        "lung opacity"
+      ]
+    },
+    "Lung Lesion": {
+      "auc": 0.8867271387740812,
+      "n_pos": 6096,
+      "n_neg": 784,
+      "top": [
+        "lung lesion",
+        "lung opacity",
+        "granulomatous disease",
+        "multiple masses/nodules"
+      ]
+    },
+    "Lung Opacity": {
+      "auc": 0.8823748909204795,
+      "n_pos": 50574,
+      "n_neg": 2769,
+      "top": [
+        "lung opacity",
+        "pneumonia",
+        "airspace opacity",
+        "aspiration"
+      ]
+    },
+    "Pleural Effusion": {
+      "auc": 0.984456804330222,
+      "n_pos": 53324,
+      "n_neg": 25301,
+      "top": [
+        "pleural effusion",
+        "costophrenic angle blunting",
+        "lung opacity",
+        "pleural/parenchymal scarring"
+      ]
+    },
+    "Pleural Other": {
+      "auc": 0.8697337377822716,
+      "n_pos": 1936,
+      "n_neg": 114,
+      "top": [
+        "pleural/parenchymal scarring",
+        "granulomatous disease",
+        "copd/emphysema",
+        "mass/nodule (not otherwise specified)"
+      ]
+    },
+    "Pneumonia": {
+      "auc": 0.9210853204479266,
+      "n_pos": 15883,
+      "n_neg": 22201,
+      "top": [
+        "pneumonia",
+        "lung opacity",
+        "consolidation",
+        "infiltration"
+      ]
+    },
+    "Pneumothorax": {
+      "auc": 0.9460103187063593,
+      "n_pos": 10346,
+      "n_neg": 41065,
+      "top": [
+        "pneumothorax",
+        "enteric tube",
+        "lung opacity",
+        "picc"
+      ]
+    },
+    "Support Devices": {
+      "auc": 0.8845453183920644,
+      "n_pos": 65650,
+      "n_neg": 3278,
+      "top": [
+        "enteric tube",
+        "endotracheal tube",
+        "pigtail catheter",
+        "chest tube"
+      ]
+    }
+  }
+}

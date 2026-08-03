@@ -205,9 +205,10 @@ M2 dựng một "bản đồ cảnh" của lồng ngực, gồm **hai nhánh đ�
 - Một detector (họ YOLO) được tinh chỉnh để **khoanh 29 vùng giải phẫu** trên ảnh CXR (phổi, thuỳ phổi,
   trung thất, tim, góc sườn hoành, khí quản, carina, cơ hoành, xương đòn, cột sống, cung động mạch chủ…).
 - 29 hộp này chính là **mặt nạ định vị** để M3 gom đặc trưng theo vùng. **Đây là điểm khớp giữa M2 và M3.**
-- **Kết quả:** mAP50 **0.931**, mAP50-95 **0.694** (val). Detector **vượt hẳn baseline "đặt hộp trung bình"**
-  (+0.38 IoU toàn cục, +0.45–0.55 ở các landmark nhỏ), và **thêm giá trị nhiều nhất ở đúng ca giải phẫu bất
-  thường** — bằng chứng nó *đọc nội dung ảnh*, không đoán theo vị trí trung bình.
+- **Kết quả cuối:** YOLOv8m, full data, `imgsz=1024`: mAP50 **0.94025**,
+  mAP50-95 **0.71935** và mean region IoU **0.8207** (val). Detector vượt
+  static mean-box prior (IoU **0.4291**) thêm **+0.3916**; gap tăng tới
+  **+0.5048** ở quartile giải phẫu bất thường nhất.
 - **Quy ước quan trọng:** dùng **hộp do detector dự đoán** cho cả lúc train lẫn lúc infer M3 (để phân phối dữ
   liệu khớp nhau). Hộp "gold" người-gán chỉ dùng để huấn luyện detector. *(Đối chứng ở M3 cho thấy dùng hộp
   gold chỉ hơn ~0.004 AUC → hộp detector là đủ.)*
@@ -504,13 +505,13 @@ trị* nhưng được **tách riêng** để không làm loãng luận điểm 
 
 | Thành phần | Cấu hình | Chỉ số chính |
 |-----------|----------|--------------|
-| **M2 detector** | YOLO 29 vùng, ảnh 448 | mAP50 **0.931** · mAP50-95 **0.694**; vượt static-prior +0.38 IoU |
+| **M2 detector** | YOLOv8m 29 vùng, full data, `imgsz=1024` | mAP50 **0.940** · mAP50-95 **0.719** · mean region IoU **0.821** |
 | **M2 nhãn ngữ nghĩa** | ImaGenome silver (không parser) | phủ toàn bộ MIMIC train; nguồn nhãn finding/tiến triển theo vùng |
 | **M3** | `B-faithful` (concept bottleneck, detector-box, global head) | test **AUC 0.829** · image-F1 0.883 · region-F1 0.863 · concept-F1 0.890; **intervention 100% → why-faithful (PASS)** |
 | **M4** | temporal-fusion + M3-delta | **MS-CXR-T accuracy ~0.64** (người, zero-shot) — > BioViL-T 0.602, sát CoCa-CXR 0.650; silver change-only F1 ~0.58; giải thích = **lead-region exact** |
 | **M5** | 2 bảng + template + verify xác định | demo end-to-end sạch (out-of-table ≈ 0, temporal-halluc = 0 by construction) |
 
-**Định vị SOTA (bản gọn):** detection IoU 0.807 (RGRG 0.887, nhưng ta chỉ 1/4 data) · bệnh AUC 0.83 (frozen
+**Định vị SOTA (bản gọn):** detection mAP50 0.940 / mAP50-95 0.719 / mean region IoU 0.821 (full data, `imgsz=1024`; RGRG báo 0.887 theo protocol công bố riêng) · bệnh AUC 0.83 (frozen
 encoder; Anatomy-XNet 0.840 fine-tune cả backbone) · concept-F1 0.89 (≥ các CBM CXR đã xuất bản) · tiến triển
 acc 0.64 (sát CoCa 0.650). **Khoảng trống novelty:** *pool theo vùng → concept bottleneck faithful → nhiều
 bệnh + tiến triển có lead-region exact* — chưa bài nào chiếm.

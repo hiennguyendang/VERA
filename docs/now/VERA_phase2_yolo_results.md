@@ -81,3 +81,41 @@ Phép *quyết định*: chạy M3 hai lần (gold-box vs detector-box), so macr
 - Số "sạch" để báo cáo (B2) cần đo lại trên **gold người-gán** (dựng dataset gold riêng từ 784 id) — hiện audit chạy trên val silver.
 
 > Nhận xét tổng: detector này **vượt baseline cũ, nhìn ảnh thật, mạnh nhất ở ca khó** — đủ tin cậy để đi tiếp. Chỉ còn oracle-ablation-ở-M3 là mảnh cuối để đóng hoàn toàn nghi vấn YOLO.
+
+## 5. Hiện tại - 16/7/2026
+- Hiện tại YOLO đang được train tiếp trên best.pt đã nói ở trên với imgz=1024, chạy trên toàn bộ data, không faction, với 30 epoch.
+- Tính đến hiện tại kết quả 5/30 epoch đang là mAP50=0.94, mAP50-95=0.7, IoU=0.81.
+- Kết quả sẽ còn được cập nhật thêm.
+
+## 6. Final full-data result - 17/7/2026
+
+The completed artifact is `weight/detect/det29_ft1024_s2`: YOLOv8m,
+`imgsz=1024`, `fraction=1.0`, batch 16, seed 0, and 30 epochs. Epoch 30 is the
+best row for both mAP metrics and is stored as `weights/last.pt`:
+
+| Metric | Legacy 448 / 25% data | Final 1024 / full data | Absolute change |
+|---|---:|---:|---:|
+| Precision | 0.93400 | 0.93657 | +0.00257 |
+| Recall | 0.88900 | 0.89551 | +0.00651 |
+| mAP50 | 0.93100 | 0.94025 | +0.00925 |
+| mAP50-95 | 0.69400 | 0.71935 | +0.02535 |
+
+Training took approximately 32.65 hours. The checkpoint SHA-256 is
+`71D4B4E3B173CC046FC45C7120B6CF4489C384CEAAEC9F08231182108A40DA56`.
+
+The matching full-data audit is available at `weight/audit_report.json` and
+uses all 21,335 validation images:
+
+| Audit metric | Final 1024 / full data |
+|---|---:|
+| Mean region IoU | 0.8207 |
+| Static mean-box IoU | 0.4291 |
+| Detector-minus-static gap | +0.3916 |
+| Q1 typical: detector / static | 0.8647 / 0.5880 |
+| Q4 atypical: detector / static | 0.7568 / 0.2520 |
+
+The detector advantage therefore widens from +0.2766 in the most typical
+quartile to +0.5048 in the most anatomically atypical quartile. The audit
+reproduces mAP50 0.94031 and mAP50-95 0.71935, confirming that it belongs to
+the final run. Audit SHA-256:
+`B674B3F6A70F624A7CE71ECB93D98C3B0C7B98A177357B2E1BC6A4037CAAEBDE`.

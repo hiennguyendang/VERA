@@ -36,12 +36,18 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--ckpt", type=Path, required=True, help="trained M3 checkpoint (e.g. m3_A/best.pt)")
     p.add_argument("--labels-dir", type=Path, default=config.DEFAULT_LABELS_DIR)
     p.add_argument("--features-root", type=Path, default=config.DEFAULT_FEATURES_ROOT)
+    p.add_argument("--box-source", choices=["detector", "gt"], default=config.BOX_SOURCE,
+                   help="bbox source used by frozen M3 while building the cache")
     p.add_argument("--out-dir", type=Path, default=config.REPO_ROOT / "data" / "m3_region_cache"
                    if hasattr(config, "REPO_ROOT") else Path("data/m3_region_cache"))
+    p.add_argument("--concept-cache-out", type=Path, default=None,
+                   help="also dump sigmoid(concept_logits) [29,69] here (FTCB concept cache; needs an M3 with a concept head, mode B/C)")
     p.add_argument("--batch", type=int, default=config.BATCH)
     p.add_argument("--workers", type=int, default=8,
                    help="DataLoader workers — feature .pt loads are the bottleneck, keep this high")
     p.add_argument("--device", default="cuda")
+    p.add_argument("--image-id", action="append", default=[],
+                   help="optional exact image_id filter; repeat for a small targeted cache")
     return p.parse_args()
 
 
@@ -50,27 +56,44 @@ def main() -> int:
     import model as M
     args = parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    concept_out = args.concept_cache_out
+    if concept_out is not None:
+        concept_out.mkdir(parents=True, exist_ok=True)
 
     ck = torch.load(args.ckpt, map_location=args.device)
     config.apply(ck.get("cfg", {}))                     # rebuild the EXACT trained architecture
     config.USE_GLOBAL_TOKEN = ck.get("use_global", config.USE_GLOBAL_TOKEN)  # (disease-head, neck, ...)
+    if getattr(config, "GLOBAL_ONLY", False):
+        raise SystemExit("[ERROR] global-only checkpoints do not emit region features for M4 precompute")
     m = M.build_model(ck["feat_dim"], ck["mode"]).to(args.device).eval()
     m.load_state_dict(ck["model"])
     print(f"[precompute] M3 mode={ck['mode']} disease_head={config.DISEASE_HEAD} "
           f"feat_dim={ck['feat_dim']} -> region cache")
 
-    ds = M3Dataset(args.labels_dir, args.features_root, split=None)   # ALL images (curr + prior)
+    ds = M3Dataset(args.labels_dir, args.features_root, split=None,
+                   box_source=args.box_source)   # ALL images (curr + prior)
+    if args.image_id:
+        wanted = set(args.image_id)
+        ds.rows = [(i, iid) for (i, iid) in ds.rows if iid in wanted]
+        found = {iid for _, iid in ds.rows}
+        missing = sorted(wanted - found)
+        if missing:
+            raise SystemExit(f"[ERROR] requested image_id(s) not found: {missing}")
     total = len(ds)
     # RESUMABLE: skip images already cached so a killed run continues instead of restarting from 0
     # (and workers don't waste time loading features for images we'd only re-write).
     done = {p.stem for p in args.out_dir.glob("*.npy")}
+    if concept_out is not None:
+        # require BOTH caches, so a complete region cache still gets its concept cache filled in
+        done &= {p.stem for p in concept_out.glob("*.npy")}
     if done:
         ds.rows = [(i, iid) for (i, iid) in ds.rows if iid not in done]
     pin = args.device.startswith("cuda")
     loader = DataLoader(ds, batch_size=args.batch, num_workers=args.workers,
                         collate_fn=collate, pin_memory=pin, persistent_workers=args.workers > 0)
     print(f"[precompute] {total:,} images total | {len(done):,} already cached | "
-          f"{len(ds):,} to do | device={args.device} workers={args.workers} batch={args.batch}")
+          f"{len(ds):,} to do | box={args.box_source} | device={args.device} "
+          f"workers={args.workers} batch={args.batch}")
 
     import time
     t0 = time.time()
@@ -81,8 +104,18 @@ def main() -> int:
         feat = out["region_feats"].cpu().numpy()                     # [B,29,feat]
         logit = out["region_disease_logits"].cpu().numpy()           # [B,29,14]
         arr = np.concatenate([feat, logit], axis=-1).astype(np.float16)  # [B,29,feat+14]
+        concept = None
+        if concept_out is not None:
+            cl = out["concept_logits"]
+            if cl is None:
+                raise SystemExit("[ERROR] --concept-cache-out needs an M3 with a concept head (mode B/C, not A)")
+            concept = torch.sigmoid(cl).cpu().numpy().astype(np.float16)   # [B,29,69]
         for j, iid in enumerate(b["image_id"]):
-            np.save(args.out_dir / f"{iid}.npy", arr[j])
+            rp = args.out_dir / f"{iid}.npy"
+            if not rp.exists():                                      # region cache may already be complete
+                np.save(rp, arr[j])
+            if concept is not None:
+                np.save(concept_out / f"{iid}.npy", concept[j])
             written += 1
         if written % 5000 < args.batch:
             rate = written / max(time.time() - t0, 1e-6)

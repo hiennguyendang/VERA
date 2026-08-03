@@ -1,0 +1,1 @@
+This is a checkpoint of YOLOv8m

@@ -29,6 +29,8 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Infer 29-region boxes with trained YOLO")
     p.add_argument("--weights", type=Path, required=True)
     p.add_argument("--source", type=Path, required=True, help="image file or folder")
+    p.add_argument("--manifest", type=Path, default=None,
+                   help="optional manifest.jsonl; resolves only its image_id rows without rglob")
     p.add_argument("--out", type=Path, default=config.WORK_ROOT / "pred")
     p.add_argument("--conf", type=float, default=0.25)
     p.add_argument("--iou", type=float, default=0.5)
@@ -41,6 +43,10 @@ def parse_args() -> argparse.Namespace:
                         "(use for the full ~220k MIMIC run to avoid a flood of tiny files; "
                         "implies --jsonl)")
     p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--shard-index", type=int, default=0,
+                   help="zero-based shard index for deterministic multi-GPU inference")
+    p.add_argument("--num-shards", type=int, default=1,
+                   help="number of deterministic shards; use 1 for the normal single-process run")
     return p.parse_args()
 
 
@@ -50,16 +56,53 @@ def list_images(source: Path) -> list[Path]:
     return sorted(p for p in source.rglob("*") if p.suffix.lower() in IMAGE_SUFFIXES)
 
 
+def list_manifest_images(source: Path, manifest: Path, shard_index: int,
+                         num_shards: int, limit: int | None) -> list[Path]:
+    """Resolve manifest image IDs directly under pXX/pXXXXXXXX, avoiding a full tree scan."""
+    image_ids = set()
+    with manifest.open(encoding="utf-8-sig") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                image_ids.add(str(json.loads(line)["image_id"]))
+    selected = sorted(image_ids)[shard_index::num_shards]
+    if limit is not None:
+        selected = selected[:limit]
+    images, missing = [], []
+    for image_id in selected:
+        patient = image_id.split("_", 2)[1]  # p12345678
+        parent = source / patient[:3] / patient
+        path = next((parent / f"{image_id}{suffix}" for suffix in IMAGE_SUFFIXES
+                     if (parent / f"{image_id}{suffix}").exists()), None)
+        if path is None:
+            missing.append(image_id)
+        else:
+            images.append(path)
+    if missing:
+        raise SystemExit(f"[ERROR] {len(missing):,} manifest images missing under {source}; first={missing[:5]}")
+    return images
+
+
 def main() -> int:
     args = parse_args()
     from ultralytics import YOLO
 
-    images = list_images(args.source)
-    if args.limit is not None:
-        images = images[: args.limit]
+    if args.num_shards < 1 or not 0 <= args.shard_index < args.num_shards:
+        raise SystemExit("[ERROR] require 0 <= shard-index < num-shards and num-shards >= 1")
+    if args.manifest is not None:
+        if not args.manifest.exists():
+            raise SystemExit(f"[ERROR] manifest not found: {args.manifest}")
+        images = list_manifest_images(args.source, args.manifest, args.shard_index,
+                                      args.num_shards, args.limit)
+    else:
+        images = list_images(args.source)
+        if args.num_shards > 1:
+            images = images[args.shard_index::args.num_shards]
+        if args.limit is not None:
+            images = images[: args.limit]
     if not images:
         raise SystemExit(f"[ERROR] no images under {args.source}")
-    print(f"Running on {len(images):,} images")
+    print(f"Running on {len(images):,} images (shard {args.shard_index + 1}/{args.num_shards})")
 
     args.out.mkdir(parents=True, exist_ok=True)
     model = YOLO(str(args.weights))
@@ -69,6 +112,7 @@ def main() -> int:
         combined = open(args.out / "predictions.jsonl", "w", encoding="utf-8")
 
     n = 0
+    last_report = 0
     for start in range(0, len(images), args.batch):
         batch = images[start: start + args.batch]
         results = model.predict(
@@ -103,8 +147,9 @@ def main() -> int:
             if combined is not None:
                 combined.write(json.dumps(record) + "\n")
             n += 1
-        if n % 500 == 0 or start + args.batch >= len(images):
+        if n - last_report >= 500 or start + args.batch >= len(images):
             print(f"  ...{n:,}/{len(images):,}")
+            last_report = n
 
     if combined is not None:
         combined.close()
